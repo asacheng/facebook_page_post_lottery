@@ -1,0 +1,370 @@
+<!doctype html>
+<html>
+    
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta http-equiv="cache-control" content="no-cache">
+        <meta http-equiv="pragma" content="no-cache">
+        <meta http-equiv="expires" content="0">
+        <meta name="viewport" content="width=640, user-scalable=0, target-densitydpi=320dpi, minimal-ui">
+        <meta name="MobileOptimized" content="640">
+        <meta http-equiv="cleartype" content="on">
+        <title></title>
+        <link rel="stylesheet" href="bootstrap.min.css-bootstrap-responsive.min.css-rell.css">
+        <style>
+            body {
+                margin:50px;
+            }
+            textarea {
+                width:90%;
+                height:300px;
+            }
+            .loading {
+                background:url(bbg.png) repeat;
+                width:100%;
+                height:100%;
+                position:fixed;
+                z-index:9999;
+                top:0px;
+                left:0px;
+                display:none;
+            }
+            .loading .waiting {
+                display:block;
+                width:300px;
+                height:50px;
+                text-align:center;
+                position:absolute;
+                left:50%;
+                top:50%;
+                margin-top:-25px;
+                margin-left:-150px;
+                color:#fff;
+                font-weight:900;
+            }
+            li.btn {
+                text-align:left;
+            }
+        </style>
+    </head>
+    
+    <body>
+        <script>
+            function toggleLoading(onoff) {
+
+                if (onoff) {
+                    document.getElementById('loading').style.display = "block";
+                } else {
+
+                    document.getElementById('loading').style.display = "none";
+                }
+            }
+
+
+
+
+
+            window.fbAsyncInit = function() {
+                //console.log('FB.init2');
+                FB.init({
+                    appId: '212590798776219',
+                    status: true,
+                    cookie: true,
+                    xfbml: true,
+                    oauth: true
+                });
+
+                //console.log('FB.init');
+
+                //FB相關操作進入點
+
+            };
+
+
+             // Load the SDK asynchronously
+            (function(d) {
+                var js, id = 'facebook-jssdk',
+                    ref = d.getElementsByTagName('script')[0];
+                if (d.getElementById(id)) {
+                    return;
+                }
+                js = d.createElement('script');
+                js.id = id;
+                js.async = true;
+                js.src = "//connect.facebook.net/zh_TW/all.js";
+                ref.parentNode.insertBefore(js, ref);
+            }(document));
+        </script>
+        <h2>step1 登入</h2>
+        <p>請先按下方登入按鈕</p>
+        <div class="fb-login-button" data-scope="manage_pages,read_stream" data-max-rows="1" data-size="medium"></div>
+        <hr />
+        <h2>step2 選擇要管理的粉絲團</h2>
+        <div id="pageBtn" class="btn btn-success clearfix">先按這取得列表，接著從下方選取粉絲團</div>
+        <br>
+        <ul id="pagesList" class="btn-group btn-group-vertical clearfix"></ul>
+        <script>
+            document.getElementById('pageBtn').onclick = function() {
+                toggleLoading(true);
+                FB.api('/me/accounts?fields=name,access_token,link,id', function(response) {
+                    console.log('API response' + response);
+                    var list = document.getElementById('pagesList');
+                    for (var i = 0; i < response.data.length; i++) {
+                        var li = document.createElement('li');
+                        li.innerHTML = response.data[i].name;
+                        li.dataset.token = response.data[i].access_token;
+                        li.dataset.id = response.data[i].id;
+                        li.dataset.link = response.data[i].link;
+                        li.className = 'btn btn-mini';
+                        li.onclick = function() {
+                            toggleLoading(true);
+                            document.getElementById('pageName').innerHTML = this.innerHTML;
+                            document.getElementById('pageToken').innerHTML = this.dataset.token;
+                            document.getElementById('pageId').innerHTML = this.dataset.id;
+                            document.getElementById('pageLink').setAttribute('href', this.dataset.link);
+                            reset();
+                            getPostList(this.dataset.id);
+                        }
+                        list.appendChild(li);
+                    }
+                    toggleLoading(false);
+                });
+                return false;
+            }
+        </script>
+        <!--asa -->
+        <hr />
+        <h2>step3 選取要比對like與留言的文章</h2>
+        <p>目前選擇的粉絲團是:
+            <span id="pageName" class="label label-success">No page selected</span>
+        </p>
+        <span id="pageToken" class="label label-success" style="display:none;">No page selected</span>
+        <span id="pageId" class="label label-success" style="display:none;">No page selected</span>
+        <br>
+        <!--<div id="getPostBtn" class="btn btn-success">按這裡取得25篇最新文章</div><br>-->
+        <h4>點選文章立即比對</h4>
+        <ul id="postList" class="btn-group btn-group-vertical clearfix"></ul>
+        <br>like:
+        <br>
+        <textarea id="post_like"></textarea>
+        <br>comments:
+        <br>
+        <textarea id="post_comments"></textarea>
+        <br>share:
+        <br>
+        <textarea id="post_shares"></textarea>
+        <br>like and comments:
+        <br>
+        <textarea id="post_both"></textarea>
+        <br>like and comments and shared:
+        <br>
+        <textarea id="post_tri"></textarea>
+        <script>
+            //    document.getElementById('getPostBtn').onclick = function() {
+             //        var pageToken = document.getElementById('pageToken').innerHTML;
+             //        var pageId = document.getElementById('pageId').innerHTML;
+             //        FB.api('/' + pageId + '/feed', function(response) {
+             //            console.log('API response' + response.data.length+response);
+             //            var list = document.getElementById('postList');
+             //            for (var i = 0; i < response.data.length; i++) {
+             //                var li = document.createElement('li');
+             //                var ts = response.data[i].message + response.data[i].story;
+             //                li.innerHTML = ts.substr(0, 50);
+             //                li.dataset.id = response.data[i].id;
+             //                li.className = 'btn btn-mini';
+             //                li.onclick = function() {
+             //                    getPostData(this.dataset.id);
+             //                }
+             //                list.appendChild(li);
+             //            }
+             //        });
+             //        return false;
+             //    }
+
+            function getPostList(_pageId) {
+                var pageToken = document.getElementById('pageToken').innerHTML;
+                var pageId = document.getElementById('pageId').innerHTML;
+                FB.api('/' + _pageId + '/feed?limit=200', function(response) {
+                    console.log('API response' + response.data.length + response);
+                    var list = document.getElementById('postList');
+                    list.innerHTML = '';
+                    for (var i = 0; i < response.data.length; i++) {
+                        var li = document.createElement('li');
+
+                        var ts = response.data[i].created_time.split('T')[0] + '_' + response.data[i].message + response.data[i].story;
+                        li.innerHTML = ts.substr(0, 50);
+                        li.dataset.id = response.data[i].id;
+                        if (response.data[i].hasOwnProperty("object_id")) {
+                            li.dataset.oid = response.data[i].object_id;
+                        } else {
+                            li.dataset.oid = li.dataset.id.split('_')[1];
+                        }
+                        li.className = 'btn btn-mini';
+                        li.onclick = function() {
+                            toggleLoading(true);
+                            reset();
+                            getPostData(this.dataset.id, this.dataset.oid);
+                        }
+                        list.appendChild(li);
+                    }
+                    toggleLoading(false);
+                });
+                return false;
+            }
+
+
+            var data_shares = [];
+            var data_liks = [];
+            var data_comments = [];
+
+
+            function getShares(api_url, _page, _callback) {
+
+                _page++;
+                document.getElementById('waiting').innerHTML = '處理中請稍後...\n取得分享數 p' + _page;
+                FB.api(api_url, function(response) {
+                    for (var i = 0; i < response.data.length; i++) {
+                        data_shares.push(response.data[i].from);
+                    }
+                    if (typeof response.paging != 'undefined') {
+                        if (typeof response.paging.next != 'undefined') {
+                            return getShares(response.paging.next.split('graph.facebook.com')[1], _page, _callback);
+                        } else {
+                            _callback();
+                        }
+                    } else {
+                        _callback();
+                    }
+                });
+            }
+
+
+            function getLikes(api_url, _page, _callback) {
+                _page++;
+                document.getElementById('waiting').innerHTML = '處理中請稍後...\n取得按讚數 p' + _page;
+                FB.api(api_url, function(response) {
+                    data_liks = data_liks.concat(response.data);
+                    if (typeof response.paging != 'undefined') {
+                        if (typeof response.paging.next != 'undefined') {
+                            return getLikes(response.paging.next.split('graph.facebook.com')[1], _page, _callback);
+                        } else {
+                            _callback();
+                        }
+                    } else {
+                        _callback();
+                    }
+                });
+            }
+
+            function getComments(api_url, _page, _callback) {
+                _page++;
+                document.getElementById('waiting').innerHTML = '處理中請稍後...\n取得留言數 p' + _page;
+                FB.api(api_url, function(response) {
+                    for (var i = 0; i < response.data.length; i++) {
+                        data_comments.push(response.data[i].from);
+                    }
+                    if (typeof response.paging != 'undefined') {
+                        if (typeof response.paging.next != 'undefined') {
+                            return getComments(response.paging.next.split('graph.facebook.com')[1], _page, _callback);
+                        } else {
+                            _callback();
+                        }
+                    } else {
+                        _callback();
+                    }
+                });
+            }
+
+            function getPostData(_postid, _oid) {
+
+                //var data_liks = [];
+                //var data_comments = [];
+                //var data_shares = [];
+
+
+                getLikes('/' + _postid + '/likes?limit=500', 0, function() {
+                    getComments('/' + _postid + '/comments?limit=500&fields=from', 0, function() {
+                        getShares('/' + _oid + '/sharedposts?limit=100&fields=from', 0, function() {
+                            processData(data_liks, data_comments, data_shares);
+                            toggleLoading(false);
+                        });
+                    });
+                });
+
+              
+            }
+
+            function processData(_likes, _comments, _shares) {
+                console.log('processData');
+                var _like_id = getIdArray(_likes);
+                var _share_id = getIdArray(_shares);
+                var _both = [];
+                var _tri = [];
+
+                for (var i = 0; i < _comments.length; i++) {
+                    if (_like_id.indexOf(_comments[i].id) >= 0) {
+                        //console.log('processData'+_like_id.indexOf(_comments[i].id));
+                        var _obj = {};
+                        _obj.name = _comments[i].name;
+                        _obj.id = _comments[i].id;
+                        _both.push(_obj);
+                    }
+                }
+
+
+                for (var i = 0; i < _both.length; i++) {
+                    if (_share_id.indexOf(_both[i].id) >= 0) {
+                        // console.log('processData'+_like_id.indexOf(_comments[i].id));
+                        var _obj = {};
+                        _obj.name = _both[i].name;
+                        _obj.id = _both[i].id;
+                        _tri.push(_obj);
+                    }
+                }
+                alert('比對done!');
+                document.getElementById('post_like').innerHTML = obj2csv(_likes);
+                document.getElementById('post_comments').innerHTML = obj2csv(_comments);
+                document.getElementById('post_shares').innerHTML = obj2csv(_shares);
+                document.getElementById('post_both').innerHTML = obj2csv(_both);
+                document.getElementById('post_tri').innerHTML = obj2csv(_tri);
+            }
+
+            function reset() {
+                document.getElementById('post_like').innerHTML = '';
+                document.getElementById('post_comments').innerHTML = '';
+                document.getElementById('post_shares').innerHTML = '';
+                document.getElementById('post_both').innerHTML = '';
+                document.getElementById('post_tri').innerHTML = '';
+                data_shares = [];
+                data_liks = [];
+                data_comments = [];
+                document.getElementById('waiting').innerHTML = '處理中請稍後...';
+            }
+
+            function obj2csv(_obj) {
+                var ss = '共 ' + _obj.length + ' 人\n----------------------------------------\n';
+                for (var i = 0; i < _obj.length; i++) {
+                    ss += _obj[i].id + '\t' + _obj[i].name + '\n';
+                }
+                return ss;
+            }
+
+            function getIdArray(_obj) {
+                var ss = [];
+                for (var i = 0; i < _obj.length; i++) {
+                    ss.push(_obj[i].id);
+                }
+                return ss;
+            }
+        </script>
+        <!--asa -->
+        <p>Now go look at
+            <a id="pageLink" href="#">your page</a>and if the API request was successful, you'll see the Hello, World post in the feed.</p>
+        <hr />
+        
+        <div class="index_bg loading" id="loading">
+            <div class="waiting" id="waiting">處理中請稍後...</div>
+        </div>
+    </body>
+
+</html>
